@@ -3,10 +3,17 @@
 Plugin Name: Test Plugin Update
 Plugin URI: http://www.c-metric.com
 Description: Test plugin updates
-Version: 1.0
+Version: 2.0
 Author: Rupesh jorkar
 Author URI: http://www.c-metric.com
 */
+
+require 'plugin-update-checker/plugin-update-checker.php';
+$myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
+	'https://github.com/rupesh-cmetric/Test-Plugin-Update',
+	__FILE__,
+	'test-plugin-update'
+);
 
 
 //plugin activation hook
@@ -27,7 +34,28 @@ function installer(){
 	) $charset_collate;";
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 	dbDelta( $sql );
-
+	//add the new or existing column 
+	update_db();
 }
 
+function  update_db(){
+	global $wpdb;
+	$table_name = $wpdb->prefix . "user_details";
+	//column name and data type for
+	$colums_details = array(
+		'city' => 'varchar(255)',
+		'country' => 'varchar(255)',
+		'state' => 'varchar(255)',
+		'created_at' => 'DATETIME',
+		'updated_at' => 'DATETIME'		
+	);
+	foreach($colums_details as $column=>$value){
+		//get column exist or not
+		$checkcolumn = $wpdb->get_row("Show columns from $table_name like '$column'",ARRAY_A);
+		if(empty($checkcolumn)){
+			//if column not exist than add into table
+			$wpdb->query("ALTER TABLE $table_name ADD $column $value");
+		}
+	}
+}
 ?>
