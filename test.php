@@ -3,7 +3,7 @@
 Plugin Name: Test Plugin Update
 Plugin URI: http://www.c-metric.com
 Description: Test plugin updates
-Version: 2.0
+Version: 2.1
 Author: Rupesh jorkar
 Author URI: http://www.c-metric.com
 */
@@ -34,8 +34,6 @@ function installer(){
 	) $charset_collate;";
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 	dbDelta( $sql );
-	//add the new or existing column 
-	update_db();
 }
 
 function  update_db(){
@@ -57,5 +55,21 @@ function  update_db(){
 			$wpdb->query("ALTER TABLE $table_name ADD $column $value");
 		}
 	}
+}
+
+
+add_action( 'upgrader_process_complete', 'custom_upgrade_function',10, 2);
+
+function custom_upgrade_function( $upgrader_object, $options ) {
+    $current_plugin_path_name = plugin_basename( __FILE__ );
+
+    if ($options['action'] == 'update' && $options['type'] == 'plugin' ){
+       foreach($options['plugins'] as $each_plugin){
+          if ($each_plugin==$current_plugin_path_name){
+			//add the new or existing column 
+			update_db();
+          }
+       }
+    }
 }
 ?>
