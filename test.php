@@ -3,7 +3,7 @@
 Plugin Name: Test Plugin Update
 Plugin URI: http://www.c-metric.com
 Description: Test plugin updates
-Version: 2.1
+Version: 2.2
 Author: Rupesh jorkar
 Author URI: http://www.c-metric.com
 */
@@ -14,6 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define('CUSTPLGNAME','test-plugin-update');
+define('test_plugin_version','2.2');
+
 require 'plugin-update-checker/plugin-update-checker.php';
 $myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
 	'https://github.com/rupesh-cmetric/Test-Plugin-Update',
@@ -23,8 +25,8 @@ $myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
 
 
 //plugin activation hook
-register_activation_hook( __file__, 'installer' );
-function installer(){
+register_activation_hook( __file__, 'test_plugin_update_installer' );
+function test_plugin_update_installer(){
 	//create the table
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
@@ -40,7 +42,7 @@ function installer(){
 	) $charset_collate;";
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 	dbDelta( $sql );
-	set_transient( 'wp_upe_activated', 1 );
+	add_option( "test_plugin_version", "1.0" );	
 }
 
 function  update_db(){
@@ -64,43 +66,12 @@ function  update_db(){
 	}
 }
 
-function wp_upe_upgrade_completed( $upgrader_object, $options ) {
- // The path to our plugin's main file
- $our_plugin = plugin_basename( __FILE__ );
- // If an update has taken place and the updated type is plugins and the plugins element exists
- if( $options['action'] == 'update' && $options['type'] == 'plugin' && isset( $options['plugins'] ) ) {
-  // Iterate through the plugins being updated and check if ours is there
-  foreach( $options['plugins'] as $plugin ) {
-   if( $plugin == $our_plugin ) {
-    // Set a transient to record that our plugin has just been updated
-	update_db();
-    set_transient( 'wp_upe_updated', 1 );
-   }
-  }
- }
+function myplugin_update_db_check() {
+    if ( get_site_option( 'test_plugin_version' ) != test_plugin_version ) {
+        update_db();
+		update_option( "test_plugin_version", test_plugin_version );
+    }
 }
-add_action( 'upgrader_process_complete', 'wp_upe_upgrade_completed', 10, 2 );
-
-
-function wp_upe_display_update_notice() {
- // Check the transient to see if we've just updated the plugin
- if( get_transient( 'wp_upe_updated' ) ) {
-  echo '<div class="notice notice-success">' . __( 'Thanks for updating', 'wp-upe' ) . '</div>';
-  delete_transient( 'wp_upe_updated' );
- }
-}
-add_action( 'admin_notices', 'wp_upe_display_update_notice' );
-
-
-
-function wp_upe_display_install_notice() {
- // Check the transient to see if we've just activated the plugin
- if( get_transient( 'wp_upe_activated' ) ) {
-  echo '<div class="notice notice-success">' . __( 'Thanks for installing', 'wp-upe' ) . '</div>';
-  // Delete the transient so we don't keep displaying the activation message
- delete_transient( 'wp_upe_activated' );
- }
-}
-add_action( 'admin_notices', 'wp_upe_display_install_notice' );
+add_action( 'plugins_loaded', 'myplugin_update_db_check' );
 
 ?>
